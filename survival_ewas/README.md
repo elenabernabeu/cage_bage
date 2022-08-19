@@ -1,4 +1,4 @@
-# Survival EWAS
+## Survival EWAS
 
 Scripts detailing survival EWAS.
 
