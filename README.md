@@ -1,4 +1,4 @@
-## Refining epigenetic prediction of chronological and biological age
+# Refining epigenetic prediction of chronological and biological age
 
 Scripts that accompany our paper "Refining epigenetic prediction of chronological and biological age".
 
