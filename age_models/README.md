@@ -93,6 +93,8 @@ python -u chronological_age.py --train --test --wave4 --external --loo --subset 
 - `--logage` indicates that we want to train on log(age) as opposed to age
 - `--logage20` indicates that we only want to use the model trained on log(age) to test on individuals that have already been predicted to be under 20 when testing using the model trained on age
 
+Feature pre-selection effects on model performance was explored by running models tuning the --subset_n and --cpg2_n flags. 
+
 # Biological age
 
 ## User specifications
