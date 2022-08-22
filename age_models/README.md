@@ -8,10 +8,9 @@ Many parameters included in these scripts were not used in the final results des
 
 # Chronological age
 
-
 ## Prediction creator flowchart
 
-![cAge flowchart](cage_flowchart.png)
+<img src="cage_flowchart.png" alt="cAge flowchart" width="600" class="center">
 
 
 ## User specifications
@@ -107,8 +106,7 @@ Feature pre-selection effects on model performance was explored by running model
 
 ## Prediction creator flowchart
 
-![bAge flowchart](bage_flowchart.png)
-
+<img src="bage_flowchart.png" alt="bAge flowchart" width="600" class="center">
 
 ## User specifications
 

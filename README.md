@@ -6,7 +6,7 @@ Scripts to predict cAge and bAge from DNA methylation data (namely Illumina's 45
 - cAge prediction: `cage_predictor/`
 - bAge prediction: `bage_predictor/`
 
-## Visualization of CpG ~ Age trajectories
+## Visualization of CpG ~ age trajectories
 
 CpG beta values across age in a subset of unrelated individuals (N = 4,450) in the Generation Scotland cohort can be visualized in the shiny app MethylBrowsR.
 
