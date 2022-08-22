@@ -8,6 +8,12 @@ Many parameters included in these scripts were not used in the final results des
 
 # Chronological age
 
+
+## Prediction creator flowchart
+
+![cAge flowchart](cage_flowchart.png)
+
+
 ## User specifications
 
 `chronological_age.py` works as other command line programs in that it takes flags that enable it to do certain things. The flags that can be specified and what they do are:
@@ -77,6 +83,7 @@ python -u chronological_age.py --train --test --wave4 --external --loo --subset 
 python -u chronological_age.py --train --test --wave4 --external --loo --subset --subset_n 10 --squared_subset --cpg2 --cpg2_n 0.3 --trandom --lbc --logage --logage20
 ~~~
 
+
 ### Description of selected parameters:
 
 - `--train` and `--test` indicate that we want to do both training and testing in our run
@@ -95,7 +102,13 @@ python -u chronological_age.py --train --test --wave4 --external --loo --subset 
 
 Feature pre-selection effects on model performance was explored by running models tuning the --subset_n and --cpg2_n flags. 
 
+
 # Biological age
+
+## Prediction creator flowchart
+
+![bAge flowchart](bage_flowchart.png)
+
 
 ## User specifications
 
@@ -131,6 +144,7 @@ optional arguments:
   --combo_bage          Option to include both episcores and CpGs in training. Options for subsets same as before.
 ~~~
 
+
 ## Fitting of bAge model described in paper
 
 To fit the model described in our paper, the chronological_age.py script must be run with the following parameters and options (reasoning described in paper).
@@ -138,6 +152,7 @@ To fit the model described in our paper, the chronological_age.py script must be
 ~~~
 python -u biological_age.py --train --test --wave4
 ~~~
+
 
 ### Description of selected parameters:
 
