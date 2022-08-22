@@ -8,7 +8,8 @@ Many parameters included in these scripts were not used in the final results des
 
 # Chronological age
 
-## Prediction creator flowchart
+## Prediction creator flowchart
+
 
 <p align="center">
 <img src="cage_flowchart.png" alt="cAge flowchart" width="800">
@@ -84,7 +85,7 @@ python -u chronological_age.py --train --test --wave4 --external --loo --subset 
 ~~~
 
 
-### Description of selected parameters:
+### Description of selected parameters:
 
 - `--train` and `--test` indicate that we want to do both training and testing in our run
 - `--wave4` indicates that we want to include all GS sets in training
@@ -105,7 +106,7 @@ Feature pre-selection effects on model performance was explored by running model
 
 # Biological age
 
-## Prediction creator flowchart
+## Prediction creator flowchart
 
 <p align="center">
 <img src="bage_flowchart.png" alt="bAge flowchart" width="600">
@@ -154,8 +155,7 @@ To fit the model described in our paper, the chronological_age.py script must be
 python -u biological_age.py --train --test --wave4
 ~~~
 
-
-### Description of selected parameters:
+### Description of selected parameters:
 
 - `--train` and `--test` indicate that we want to do both training and testing in our run
 - `--wave4` indicates that we want to train on all of GS
