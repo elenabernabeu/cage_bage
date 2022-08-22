@@ -8,3 +8,5 @@ Scripts divided into 4 main portions of paper:
 - Age prediction epigenetic models: `age_models/`
     - cAge prediction models
     - bAge prediction models
+
+![Study overview](study_overview.png)
