@@ -10,7 +10,6 @@ Many parameters included in these scripts were not used in the final results des
 
 ## Prediction creator flowchart
 
-
 <p align="center">
 <img src="cage_flowchart.png" alt="cAge flowchart" width="800">
 </p>
