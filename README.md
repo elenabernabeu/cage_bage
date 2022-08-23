@@ -7,6 +7,7 @@ Scripts to predict cAge and bAge from DNA methylation data (namely Illumina's 45
 - bAge prediction: `bage_predictor/`
 
 cAge predictions can also be obtained using the Shiny App MethylDetectR: https://shiny.igmm.ed.ac.uk/MethylDetectR/
+
 *bAge predictions require previous calculations of GrimAge components via Horvath's online calculator: http://dnamage.genetics.ucla.edu/new*
 
 ## Visualization of CpG ~ age trajectories
