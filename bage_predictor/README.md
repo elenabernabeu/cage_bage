@@ -1,6 +1,6 @@
-# bAge external testing
+# bAge predictor
 
-## Requirements
+## Requirements
 To test bAge you need:
 1. Methylation data (in the form of M-values or beta-values), preferably rows being CpGs and columns being samples.
 2. Phenotype data: chronological age, sex (coded as 1 = females, 0 = males), time-to-event (death), and death status (1 = dead, 0 = alive).
@@ -11,7 +11,8 @@ To test bAge you need:
     - Results will be e-mailed to you
 
 ## Instructions
-First thing is to set the working directory to wherever you've deposited files/scripts provided.
+
+Download the scripts contained in this subdirectory and place them in your working directory. 
 
 Once files are ready, you need to edit the top of the `bage_external_testing.R` script and assign the paths to your methylation, phenotype, and GrimAge files as well as their formats (rds, tsv, or csv). You also need to specify the column names used for age, sex, TTE, and death status. 
 
