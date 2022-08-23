@@ -14,7 +14,7 @@ To test bAge you need:
 
 Download the scripts contained in this subdirectory and place them in your working directory. 
 
-Once files are ready, you need to edit the top of the `bage_external_testing.R` script and assign the paths to your methylation, phenotype, and GrimAge files as well as their formats (rds, tsv, or csv). You also need to specify the column names used for age, sex, TTE, and death status. 
+Once files are ready, you need to edit the top of the `bage_predictor.R` script and assign the paths to your methylation, phenotype, and GrimAge files as well as their formats (rds, tsv, or csv). You also need to specify the column names used for age, sex, TTE, and death status. 
 
 Once that's done you can run the script and that will output predictions as well as evaluate bAge's predictive ability and compare it to GrimAge.
 

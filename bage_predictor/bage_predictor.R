@@ -34,10 +34,10 @@ message("1. Loading data")
 message("1.1 Loading methylation data - rows to be CpGs and columns to be individuals") 
 
 ## Loading in model coefficients. Make sure these files are present in the current working directory or change the paths to the correct directory.
-coefficients <- read.delim("bage_coefficients.tsv")
+coefficients <- read.delim("data/bage_coefficients.tsv")
 
 ## Loading in CpG coefficients for episcore projection
-cpgs <- read.delim("cpg_episcore_weights.tsv")
+cpgs <- read.delim("data/cpg_episcore_weights.tsv")
 
 ## Loading methylation data
 if (tolower(methylationTable_format) == "rds") {
