@@ -1,31 +1,20 @@
 #!/usr/bin/env Rscript 
 # -*- coding: utf-8 -*-
 
-# NOTE: Working directory should contain model weights files, if not alter script accordingly
+# NOTE: Working directory should contain model weights files in data/ subdir, if not alter script accordingly
 # NOTE 2: All outputs will be stored in working directory
 # Required packages
 library(tidyverse)
-library(survival)
 
 
 ###### (0) User input
 #########################################################################################################
 #########################################################################################################
 
-methylationTable <- "" # Path to methylation table. Each column corresponds to an individual. Each row corresponds to CpG. First column is the CpG name. If RDS, assumed first column is rownames. 
-methylationTable_format <- "" # rds, tsv, or csv
-
-phenotypeTable <- "" # Path to phenotype table. Each column corresponds to a variable. Each row corresponds to an individual/sample. First column is sample name. If RDS, assumed first column is rownames. 
-phenotypeTable_format <- "" # rds, tsv, or csv
-
-grimageTable <- "" # Path to GrimAge results table. Each column represents a GrimAge component. Each row corresponds to an individual/sample. First column is sample name.
-grimageTable_format <- "" # rds, tsv, or csv
-
-# Insert column names for each of the variables corresponding to the names in phenotypeTable
-ageColname <- "" # Age in years
-sexColname <- "" # Sex variable is binary, 1 = females, 0 = males
-tteColname <- "" # Time to event (death) column
-deathColname <- "" # Death variable is binary, 1 = dead, 0 = alive
+#methylationTable <- "" # Path to methylation table. Each column corresponds to an individual. Each row corresponds to CpG. First column is the CpG name. If RDS, assumed first column is rownames. 
+#methylationTable_format <- "" # rds, tsv, or csv
+methylationTable <- "/Cluster_Filespace/Marioni_Group/Elena/data/geo_data/test_methylation.RDS"
+methylationTable_format <- "rds"
 
 
 ###### (1) Data loading
@@ -35,11 +24,30 @@ deathColname <- "" # Death variable is binary, 1 = dead, 0 = alive
 message("1. Loading data") 
 message("1.1 Loading methylation data - rows to be CpGs and columns to be individuals") 
 
-## Loading in model coefficients. Make sure these files are present in the current working directory or change the paths to the correct directory.
-coefficients <- read.delim("data/bage_coefficients.tsv")
 
-## Loading in CpG coefficients for episcore projection
-cpgs <- read.delim("data/cpg_episcore_weights.tsv")
+## Loading in model coefficients. Make sure these files are present in the current working directory or change the paths to the correct directory.
+coefficients <- read.delim("./data/elnet_coefficients_random_noscalesample_noscalecpg_subset10K_external_gs20k_lmewas_scaledewas_loo_all_squaredsubset0.3K_cpg2lm_randomizedfolds.tsv", sep = "\t", row.names = 1)
+coefficients_log <- read.delim("./data/elnet_coefficients_random_noscalesample_noscalecpg_subset10K_external_logage_gs20k_lmewas_scaledewas_loo_all_squaredsubset0.3K_cpg2lm_randomizedfolds.tsv", sep = "\t", row.names = 1)
+cpg_mean <- read.delim(".data/cpg_meanbeta_gs20k.tsv", sep = "\t", row.names = 1)
+
+# Intercepts
+intercept <- coefficients[1,1]
+intercept_log <- coefficients_log[1,1]
+
+# Coefficients for log models
+coef_log_2 <- coefficients_log[rownames(coefficients_log)[grep('_2', rownames(coefficients_log))],,drop=FALSE]
+coef_log <- coefficients_log[which(!(rownames(coefficients_log) %in% rownames(coef_log_2))),,drop=FALSE]
+coef_log <- coef_log[2:nrow(coef_log),,drop=FALSE]
+
+# Coefficients for non-log models
+coef_2 <- coefficients[rownames(coefficients)[grep('_2', rownames(coefficients))],,drop=FALSE]
+coef <- coefficients[rownames(coefficients)[which(!(rownames(coefficients) %in% rownames(coef_2)))],,drop=FALSE]
+coef <- coef[2:nrow(coef),,drop=FALSE]
+
+# Total CpGs
+cpgs_linear <- union(rownames(coef), rownames(coef_log))
+cpgs_squared <- union(rownames(coef_2), rownames(coef_log_2))
+all_cpgs <- union(cpgs_linear, cpgs_squared)
 
 ## Loading methylation data
 if (tolower(methylationTable_format) == "rds") {
@@ -52,30 +60,8 @@ if (tolower(methylationTable_format) == "rds") {
   message("Unrecognized methylation data format. Accepted formats: rds, tsv, and csv.")
 }
 
-## Loading phenotype data
-if (tolower(phenotypeTable_format) == "rds") {
-  pheno <- readRDS(phenotypeTable)
-} else if (tolower(phenotypeTable_format) == "tsv") {
-  pheno <- read.delim(phenotypeTable, sep = "\t", row.names = 1)
-} else if (tolower(phenotypeTable_format) == "csv") {
-  pheno <- read.csv(phenotypeTable, sep = ",", row.names = 1)
-} else {
-  message("Unrecognized phenotype data format. Accepted formats: rds, tsv, and csv.")
-}
 
-## Loading GrimAge data
-if (tolower(grimageTable_format) == "rds") {
-  grim <- readRDS(grimageTable)
-} else if (tolower(grimageTable_format) == "tsv") {
-  grim <- read.delim(grimageTable, sep = "\t", row.names = 2)
-} else if (tolower(grimageTable_format) == "csv") {
-  grim <- read.csv(grimageTable, sep = ",", row.names = 2)
-} else {
-  message("Unrecognized GrimAge data format. Accepted formats: rds, tsv, and csv.")
-}
-
-
-###### (2) QC and data prep for Episcore calculation
+###### (2) QC and data prep
 #########################################################################################################
 #########################################################################################################
 
@@ -88,58 +74,38 @@ if(ncol(data) > nrow(data)){
   data <- t(data) 
 }
 
-## Keep just individuals with non-weird TTEs
-message("2.2 Removing individuals with missing TTEs") 
-pheno <- pheno[!is.na(pheno[tteColname]) & pheno[tteColname]>0,]
-
-## Keep just individuals in pheno table
-message("2.3 Subsetting samples to those in phenotype table") 
-data <- data[,which(colnames(data) %in% rownames(pheno))]
-grim <- grim[which(rownames(grim) %in% rownames(pheno)),]
 
 ## Subset CpG sites to those present on list for predictors 
-message("2.4 Subsetting CpG sites to those required for predictor calculation") 
-coef <- data[intersect(rownames(data), cpgs$CpG_Site),]
+message("2.2 Subsetting CpG sites to those required for predictor calculation") 
+coef_data <- data[intersect(rownames(data), all_cpgs),]
+
 
 ## Check if Beta or M Values
-message("2.5 Checking of Beta or M-values are present") 
+message("2.3 Checking of Beta or M-values are present") 
 m_to_beta <- function(val) {
   beta <- 2^val/(2^val + 1)
   return(beta)
 }
 
-coef <- if((range(coef, na.rm = T) > 1)[[2]] == "TRUE") {
+coef_data <- if((range(coef_data, na.rm = T) > 1)[[2]] == "TRUE") {
     message("Suspect that M Values are present. Converting to Beta Values")
-    m_to_beta(coef)
+    m_to_beta(coef_data)
   } else {
     message("Suspect that Beta Values are present");
-    coef
+    coef_data
   }
 
-## Scale data if needed
-message("2.6 Scaling data (if needed)") 
-ids <- colnames(coef)
-scaled <- apply(coef, 1, function(x) sd(x, na.rm = T)) 
-
-coef <-  if(range(scaled)[1] == 1 & range(scaled)[2] == 1) { 
-    coef
-  } else { 
-    coef_scale <- apply(coef, 1, scale)
-    coef_scale <- t(coef_scale)
-    coef_scale <- as.data.frame(coef_scale)
-    colnames(coef_scale) <- ids
-    coef_scale
-  }
+####### I'M HERE!!
 
 ## Identify CpGs missing from input dataframe, include them and provide values as mean methylation value at that site
-message("2.7 Find CpGs not present in uploaded file, add these with mean Beta Value for CpG site from training sample") 
-coef <- if (nrow(coef)==length(unique(cpgs$CpG_Site))) { 
+message("2.4 Find CpGs not present in uploaded file, add these with mean Beta Value for CpG site from training sample") 
+coef_data <- if (nrow(coef_data)==length(all_cpgs)) { 
   message("All sites present")
-  coef
-  } else if (nrow(coef)==0) { 
+  coef_data
+  } else if (nrow(coef_data)==0) { 
   message("There Are No Necessary CpGs in The dataset - All Individuals Would Have Same Values For Predictors. Analysis Is Not Informative!")
   } else { 
-    missing_cpgs = cpgs[-which(cpgs$CpG_Site %in% rownames(coef)), c("CpG_Site", "Mean_Beta_Value")]
+    missing_cpgs <- cpg_mean[-which(cpg_mean %in% rownames(coef_data)), c("CpG_Site", "Mean_Beta_Value")]
     message(paste(length(unique(missing_cpgs$CpG_Site)), "unique sites are missing - adding to dataset with mean Beta Value from training sample", sep = " "))
     mat = matrix(nrow=length(unique(missing_cpgs$CpG_Site)), ncol = ncol(coef))
     row.names(mat) <- unique(missing_cpgs$CpG_Site)

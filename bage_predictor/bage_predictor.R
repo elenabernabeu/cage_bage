@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript 
 # -*- coding: utf-8 -*-
 
-# NOTE: Working directory should contain model weights files, if not alter script accordingly
+# NOTE: Working directory should contain model weights files in data/ subdir, if not alter script accordingly
 # NOTE 2: All outputs will be stored in working directory
 # Required packages
 library(tidyverse)

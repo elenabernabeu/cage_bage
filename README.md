@@ -16,6 +16,12 @@ CpG beta values across age in a subset of unrelated individuals (N = 4,450) in t
 
 https://shiny.igmm.ed.ac.uk/MethylBrowsR/
 
+
+## Age and survival EWAS summary statistics
+
+The summary statistics can be found in the Edinburgh Datashare repository, and will also be made available to the EWAS catalog upon acceptance.
+
+
 ## Creation of predictors/analysis scripts
 
 Scripts that accompany our paper "Refining epigenetic prediction of chronological and biological age".
