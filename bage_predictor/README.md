@@ -20,5 +20,5 @@ Once that's done you can run the script and that will output predictions as well
 
 Files that will be outputted by script:
 - `projections_episcores.tsv`: Episcore projections for samples included in phenotype file/for which methylation data was provided. 
-- `predictions.tsv`: bAge predictions.
+- `bage_predictions.tsv`: bAge predictions.
 - `coxph_testing.tsv`: Cox-PH model results assessing predictive ability of bAge. 

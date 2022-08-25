@@ -11,10 +11,8 @@ library(tidyverse)
 #########################################################################################################
 #########################################################################################################
 
-#methylationTable <- "" # Path to methylation table. Each column corresponds to an individual. Each row corresponds to CpG. First column is the CpG name. If RDS, assumed first column is rownames. 
-#methylationTable_format <- "" # rds, tsv, or csv
-methylationTable <- "/Cluster_Filespace/Marioni_Group/Elena/data/geo_data/test_methylation.RDS"
-methylationTable_format <- "rds"
+methylationTable <- "" # Path to methylation table. Each column corresponds to an individual. Each row corresponds to CpG. First column is the CpG name. If RDS, assumed first column is rownames. 
+methylationTable_format <- "" # rds, tsv, or csv
 
 
 ###### (1) Data loading
