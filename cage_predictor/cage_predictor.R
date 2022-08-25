@@ -24,29 +24,33 @@ methylationTable_format <- "rds"
 message("1. Loading data") 
 message("1.1 Loading methylation data - rows to be CpGs and columns to be individuals") 
 
-
 ## Loading in model coefficients. Make sure these files are present in the current working directory or change the paths to the correct directory.
-coefficients <- read.delim("./data/elnet_coefficients_random_noscalesample_noscalecpg_subset10K_external_gs20k_lmewas_scaledewas_loo_all_squaredsubset0.3K_cpg2lm_randomizedfolds.tsv", sep = "\t", row.names = 1)
-coefficients_log <- read.delim("./data/elnet_coefficients_random_noscalesample_noscalecpg_subset10K_external_logage_gs20k_lmewas_scaledewas_loo_all_squaredsubset0.3K_cpg2lm_randomizedfolds.tsv", sep = "\t", row.names = 1)
-cpg_mean <- read.delim(".data/cpg_meanbeta_gs20k.tsv", sep = "\t", row.names = 1)
+coefficients <- read.delim("./data/elnet_coefficients_linear.tsv", sep = "\t")
+coefficients_log <- read.delim("./data/elnet_coefficients_log.tsv", sep = "\t")
+row.names(coefficients) <- coefficients[,"CpG_Site"]
+row.names(coefficients_log) <- coefficients_log[,"CpG_Site"]
+
+# Beta means
+means <- read.delim("./data/cpg_meanbeta_gs20k.tsv")
+row.names(means) <- means[,"cpg"]
 
 # Intercepts
-intercept <- coefficients[1,1]
-intercept_log <- coefficients_log[1,1]
+intercept <- read.table("./data/intercept_linear.txt", sep = "")[1, "V1"]
+intercept_log <- read.table("./data/intercept_log.txt", sep = "")[1, "V1"]
 
 # Coefficients for log models
 coef_log_2 <- coefficients_log[rownames(coefficients_log)[grep('_2', rownames(coefficients_log))],,drop=FALSE]
+coef_log_2_simp <- gsub('_2', '', rownames(coef_log_2))
 coef_log <- coefficients_log[which(!(rownames(coefficients_log) %in% rownames(coef_log_2))),,drop=FALSE]
-coef_log <- coef_log[2:nrow(coef_log),,drop=FALSE]
 
 # Coefficients for non-log models
 coef_2 <- coefficients[rownames(coefficients)[grep('_2', rownames(coefficients))],,drop=FALSE]
+coef_2_simp <- gsub('_2', '', rownames(coef_2))
 coef <- coefficients[rownames(coefficients)[which(!(rownames(coefficients) %in% rownames(coef_2)))],,drop=FALSE]
-coef <- coef[2:nrow(coef),,drop=FALSE]
 
 # Total CpGs
 cpgs_linear <- union(rownames(coef), rownames(coef_log))
-cpgs_squared <- union(rownames(coef_2), rownames(coef_log_2))
+cpgs_squared <- union(coef_2_simp, coef_log_2_simp)
 all_cpgs <- union(cpgs_linear, cpgs_squared)
 
 ## Loading methylation data
@@ -74,11 +78,9 @@ if(ncol(data) > nrow(data)){
   data <- t(data) 
 }
 
-
 ## Subset CpG sites to those present on list for predictors 
 message("2.2 Subsetting CpG sites to those required for predictor calculation") 
 coef_data <- data[intersect(rownames(data), all_cpgs),]
-
 
 ## Check if Beta or M Values
 message("2.3 Checking of Beta or M-values are present") 
@@ -95,8 +97,6 @@ coef_data <- if((range(coef_data, na.rm = T) > 1)[[2]] == "TRUE") {
     coef_data
   }
 
-####### I'M HERE!!
-
 ## Identify CpGs missing from input dataframe, include them and provide values as mean methylation value at that site
 message("2.4 Find CpGs not present in uploaded file, add these with mean Beta Value for CpG site from training sample") 
 coef_data <- if (nrow(coef_data)==length(all_cpgs)) { 
@@ -104,162 +104,73 @@ coef_data <- if (nrow(coef_data)==length(all_cpgs)) {
   coef_data
   } else if (nrow(coef_data)==0) { 
   message("There Are No Necessary CpGs in The dataset - All Individuals Would Have Same Values For Predictors. Analysis Is Not Informative!")
-  } else { 
-    missing_cpgs <- cpg_mean[-which(cpg_mean %in% rownames(coef_data)), c("CpG_Site", "Mean_Beta_Value")]
-    message(paste(length(unique(missing_cpgs$CpG_Site)), "unique sites are missing - adding to dataset with mean Beta Value from training sample", sep = " "))
-    mat = matrix(nrow=length(unique(missing_cpgs$CpG_Site)), ncol = ncol(coef))
-    row.names(mat) <- unique(missing_cpgs$CpG_Site)
-    colnames(mat) <- colnames(coef) 
+  } else {
+    missing_cpgs <- all_cpgs[which(!(all_cpgs %in% rownames(coef_data)))]
+    message(paste(length(missing_cpgs), "unique sites are missing - adding to dataset with mean Beta Value from GS training sample (N = 18,413)", sep = " "))
+    mat = matrix(nrow=length(missing_cpgs), ncol = ncol(coef_data))
+    row.names(mat) <- missing_cpgs
+    colnames(mat) <- colnames(coef_data)
     mat[is.na(mat)] <- 1
-    missing_cpgs1 <- if (length(which(duplicated(missing_cpgs$CpG_Site))) > 1) { 
-      missing_cpgs[-which(duplicated(missing_cpgs$CpG_Site)),]
-    } else {
-      missing_cpgs
-    }  
-  ids = unique(row.names(mat))
-  missing_cpgs1 = missing_cpgs1[match(ids,missing_cpgs1$CpG_Site),]
-  mat = mat*missing_cpgs1$Mean_Beta_Value
-  coef = rbind(coef,mat)
+  ids <- unique(row.names(mat))
+  missing_cpg_means <- means[ids,]
+  mat <- mat*missing_cpg_means[,"mean"]
+  coef_data <- rbind(coef_data,mat)
 } 
 
-message("2.8 Convert NA Values to mean for each probe") 
+message("2.5 Convert NA Values to mean for each probe") 
 ## Convert NAs to Mean Value for all individuals across each probe 
 na_to_mean <-function(methyl) {
   methyl[is.na(methyl)] <- mean(methyl, na.rm=T)
   return(methyl)
 }
 
-coef <- t(apply(coef,1,function(x) na_to_mean(x)))
+coef_data <- t(apply(coef_data,1,function(x) na_to_mean(x)))
 
 
-###### (3) Calculate Episcores 
+###### (3) cAge prediction
 #########################################################################################################
 #########################################################################################################
 
-message("3. Calculating Episcores") 
-loop <- unique(cpgs$Predictor)
-out <- data.frame()
-for(i in loop){ 
-  tmp=coef[intersect(row.names(coef),cpgs[cpgs$Predictor %in% i,"CpG_Site"]),]
-  tmp_coef = cpgs[cpgs$Predictor %in% i, ]
-  if(nrow(tmp_coef) > 1) { 
-    tmp_coef = tmp_coef[match(row.names(tmp),tmp_coef$CpG_Site),]
-    out[colnames(coef),i]=colSums(tmp_coef$Coefficient*tmp)
-  } else {
-    tmp2 = as.matrix(tmp)*tmp_coef$Coefficient 
-    out[colnames(coef),i] = tmp2[,1]
-  }
-} 
+message("4. Obtaining cAge predictions") 
+message("4.1. Preparing data for prediction") 
 
-## Save file
-message("3.1. Exporting Episcores")  
-write.table(out, "episcore_projections.tsv", sep = "\t", quote = FALSE)
+## Prep for linear predictor
+scores <- coef_data[rownames(coef),]
+scores_quadratic <- coef_data[coef_2_simp,]**2
+rownames(scores_quadratic) <- paste0(rownames(scores_quadratic), "_2")
+scores_linear <- rbind(scores, scores_quadratic)
+
+## Prep for log predictor
+scores_log <- coef_data[rownames(coef_log),]
+scores_quadratic_log <- coef_data[coef_log_2_simp,]**2
+rownames(scores_quadratic_log) <- paste0(rownames(scores_quadratic_log), "_2")
+scores_log <- rbind(scores_log, scores_quadratic_log)
+
+## Calculate cAge with linear model
+message("4.2. Calculating cAge using model trained on linear age") 
+coefficients <- coefficients[rownames(scores_linear),]
+pred_linear <- scores_linear * coefficients[,"Coefficient"]
+pred_linear_pp <- colSums(pred_linear)
+pred_linear_pp <- pred_linear_pp + intercept
+
+## Identify any individuals predicted as under 20s, and re-run with model trained on log(age)
+over20s <- names(pred_linear_pp[pred_linear_pp > 20])
+pred_linear_pp <- pred_linear_pp[over20s]
+under20s <- names(pred_linear_pp[pred_linear_pp < 20])
+
+## Now re-run model for those
+coefficients_log <- coefficients_log[rownames(scores_log),]
+pred_log <- scores_log * coefficients_log[,"Coefficient"]
+pred_log_pp <- colSums(pred_log)
+pred_log_pp <- pred_log_pp + intercept_log
+pred_log_pp <- exp(pred_log_pp[under20s])
 
 
-###### (4) Scale GrimAge components
+###### (5) Export results
 #########################################################################################################
 #########################################################################################################
 
-message("4. Prepping GrimAge components") 
-
-samples <- rownames(out)
-grim_pred <- grim[samples, c("DNAmGrimAge"), drop = FALSE]
-grim <- grim[samples, c("DNAmADM", "DNAmB2M", "DNAmCystatinC", "DNAmGDF15", "DNAmLeptin", "DNAmPACKYRS", "DNAmPAI1", "DNAmTIMP1")]
-
-message("4.1. Scale GrimAge components (if needed)") 
-scaled_grim <- apply(grim, 2, function(x) sd(x, na.rm = T)) 
-ids <- colnames(grim)
-
-grim <-  if(range(scaled_grim)[1] == 1 & range(scaled_grim)[2] == 1) { 
-    grim
-  } else { 
-    grim_scale <- scale(grim)
-    grim_scale <- as.data.frame(grim_scale)
-    grim_scale
-  }
-
-
-###### (5) bAge prediction
-#########################################################################################################
-#########################################################################################################
-
-message("5. Obtaining bAge predictions") 
-## Change pheno table columns
-names(pheno)[names(pheno) == ageColname] <- "Age"
-names(pheno)[names(pheno) == tteColname] <- "TTE"
-names(pheno)[names(pheno) == deathColname] <- "Dead"
-names(pheno)[names(pheno) == sexColname] <- "Sex"
-
-## Fuse all Episcores and GrimAge components, along with other stuff, for each sample
-scores <- cbind(pheno[samples, c("TTE", "Dead", "Age", "Sex")], grim, out)
-
-## Filter to elements in predictor
-scores <- scores[, coefficients$Variable]
-
-## Calculate bAge
-message("5.1. Calculating bAge") 
-scores <- t(scores)
-pred <- scores * coefficients[,"Coefficient"]
-pred_pp <- colSums(pred)
-
-## Scale to same scale as age in training
-message("5.2. Scaling bAge") 
-scale_pred <- function(x, mean_pred, sd_pred, mean_train, sd_train) { 
-  scaled <- mean_train + (x - mean_pred)*(sd_train/sd_pred)
-  return(scaled)
-}
-
-mean_pred <- mean(pred_pp)
-mean_train <- 47.5 # Mean age in training data
-sd_pred <- sd(pred_pp)
-sd_train <- 14.9 # SD age in training data
-pred_pp_scaled <- scale_pred(pred_pp, mean_pred, sd_pred, mean_train, sd_train)
-
-## Make df with everything
-pred_df <- data.frame(pred_pp_scaled, grim_pred, pheno[samples, c("Age", "Sex", "TTE", "Dead")])
-names(pred_df) <- c("bAge", "GrimAge", "Age", "Sex", "TTE", "Dead")
-
-## Obtain bAgeAccel and GrimAgeAccel
-message("5.3. Obtaining bAgeAccel") 
-pred_df$GrimAgeAccel <- resid(lm(GrimAge ~ Age, data=pred_df, na.action=na.exclude))
-pred_df$bAgeAccel <- resid(lm(bAge ~ Age, data=pred_df, na.action=na.exclude))
-
-## Export
-message("5.4. Exporting predictions") 
-write.table(data.frame("Sample" = rownames(pred_df), pred_df), file = paste0("predictions.tsv"), quote = FALSE, sep = "\t", row.names = FALSE)
-
-
-###### (6) bAge vs GrimAge prediction
-#########################################################################################################
-#########################################################################################################
-
-message("6. Assessing predictive ability of bAge") 
-## CoxPH models, compared with GrimAge
-grimage_fit <- coxph(Surv(TTE, Dead) ~ Age + factor(Sex) + scale(GrimAgeAccel), data=pred_df)
-grim_stuff <- cbind(summary(grimage_fit)$coefficients, exp(confint(grimage_fit)))
-rownames(grim_stuff) <- c("GrimAge_Age", "GrimAge_Sex", "GrimAge_GrimAgeAccel")
-for (cohort in unique(pred_df$Cohort)) {
-  grimage_fit_cohort <- coxph(Surv(TTE, Dead) ~ Age + factor(Sex) + scale(GrimAgeAccel), data=pred_df[pred_df$Cohort == cohort,])
-  grim_stuff_cohort <- cbind(summary(grimage_fit_cohort)$coefficients, exp(confint(grimage_fit_cohort)))
-  rownames(grim_stuff_cohort) <- c(paste0(cohort, "_GrimAge_Age"), paste0(cohort, "_GrimAge_Sex"), paste0(cohort, "_GrimAge_GrimAgeAccel"))
-  # Append
-  grim_stuff <- rbind(grim_stuff, grim_stuff_cohort)
-}
-colnames(grim_stuff) <- c("logHR", "HR", "SE", "Z", "p", "HR_CI95_Low", "HR_CI95_High")
-
-bage_fit <- coxph(Surv(TTE, Dead) ~ Age + factor(Sex) + scale(bAgeAccel), data=pred_df)
-bage_stuff <- cbind(summary(bage_fit)$coefficients, exp(confint(bage_fit)))
-rownames(bage_stuff) <- c("bAge_Age", "bAge_Sex", "bAge_bAgeAccel")
-for (cohort in unique(pred_df$Cohort)) {
-  bage_fit_cohort <- coxph(Surv(TTE, Dead) ~ Age + factor(Sex) + scale(bAgeAccel), data=pred_df[pred_df$Cohort == cohort,])
-  bage_stuff_cohort <- cbind(summary(bage_fit_cohort)$coefficients, exp(confint(bage_fit_cohort)))
-  rownames(bage_stuff_cohort) <- c(paste0(cohort, "_bAge_Age"), paste0(cohort, "_bAge_Sex"), paste0(cohort, "_bAge_bAgeAccel"))
-  # Append
-  bage_stuff <- rbind(bage_stuff, bage_stuff_cohort)
-}
-colnames(bage_stuff) <- c("logHR", "HR", "SE", "Z", "p", "HR_CI95_Low", "HR_CI95_High")
-cox <- rbind(bage_stuff, grim_stuff)
-
-message("6.1. Exporting Cox PH results") 
-write.table(data.frame("Variable" = rownames(cox), cox), file = paste0("coxph_testing.tsv"), quote = FALSE, sep = "\t", row.names = FALSE)
-
+message("Exporting predictions to working directory!") 
+predictions <- c(pred_log_pp, pred_linear_pp)
+results <- data.frame("Sample" = names(predictions), "Predicted_Age" = predictions)
+write.table(results, file = "cage_predictions.tsv", quote = FALSE, sep = "\t", row.names = FALSE)

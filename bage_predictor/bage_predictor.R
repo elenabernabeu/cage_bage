@@ -260,7 +260,7 @@ pred_df$bAgeAccel <- resid(lm(bAge ~ Age, data=pred_df, na.action=na.exclude))
 
 ## Export
 message("5.4. Exporting predictions") 
-write.table(data.frame("Sample" = rownames(pred_df), pred_df), file = paste0("predictions.tsv"), quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(data.frame("Sample" = rownames(pred_df), pred_df), file = paste0("bage_predictions.tsv"), quote = FALSE, sep = "\t", row.names = FALSE)
 
 
 ###### (6) bAge vs GrimAge prediction
