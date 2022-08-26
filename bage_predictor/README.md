@@ -1,5 +1,7 @@
 # bAge predictor
 
+**Note: At the moment this script is made with comparison to GrimAge in mind, not as a standalone bAge predictor. This functionality will be added soon.**
+
 ## Requirements
 To test bAge you need:
 1. Methylation data (in the form of M-values or beta-values), preferably rows being CpGs and columns being samples.
