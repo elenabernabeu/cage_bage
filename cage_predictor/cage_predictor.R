@@ -153,7 +153,7 @@ pred_linear_pp <- pred_linear_pp + intercept
 
 ## Identify any individuals predicted as under 20s, and re-run with model trained on log(age)
 over20s <- names(pred_linear_pp[pred_linear_pp > 20])
-pred_linear_pp <- pred_linear_pp[over20s]
+pred_linear_pp1 <- pred_linear_pp[over20s]
 under20s <- names(pred_linear_pp[pred_linear_pp < 20])
 
 ## Now re-run model for those
@@ -169,6 +169,6 @@ pred_log_pp <- exp(pred_log_pp[under20s])
 #########################################################################################################
 
 message("Exporting predictions to working directory!") 
-predictions <- c(pred_log_pp, pred_linear_pp)
+predictions <- c(pred_log_pp, pred_linear_pp1)
 results <- data.frame("Sample" = names(predictions), "Predicted_Age" = predictions)
 write.table(results, file = "cage_predictions.tsv", quote = FALSE, sep = "\t", row.names = FALSE)
