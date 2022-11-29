@@ -21,6 +21,8 @@ https://shiny.igmm.ed.ac.uk/MethylBrowsR/
 
 The summary statistics can be found in the Edinburgh Datashare repository, and will also be made available to the EWAS catalog upon acceptance.
 
+https://datashare.ed.ac.uk/handle/10283/4496
+
 
 ## Creation of predictors/analysis scripts
 
