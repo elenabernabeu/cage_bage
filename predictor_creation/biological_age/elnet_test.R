@@ -42,7 +42,6 @@ opt = parse_args(opt_parser);
 # Make sure that these are not sig dif between waves in GS!
 
 output_dir <- opt$out
-#output_dir <- "/Cluster_Filespace/Marioni_Group/Elena/epigenetic_clocks/biological_age/elasticnet_models/elnet_test/w1w3/random/"
 
 # CpGs instead of Episcores/other covars as predictors?
 ######################################################
@@ -51,7 +50,6 @@ cpg_bage <- opt$cpg_bage
 cpg_subset <- opt$cpg_subset
 if (cpg_bage == "T") {
     cpg_file <- opt$cpg_file
-    # cpg_file <- "/Cluster_Filespace/Marioni_Group/Elena/epigenetic_clocks/chronological_age/data_prep/w1w3w4/methylation_training_noscale.rds"
 }
 combo_bage <- opt$combo_bage
 
@@ -60,8 +58,6 @@ combo_bage <- opt$combo_bage
 
 training_info <- read.delim(opt$training, row.names = 2)
 weights <- read.delim(opt$weights, row.names = 1)
-# training_info <- read.delim("/Cluster_Filespace/Marioni_Group/Elena/epigenetic_clocks/chronological_age/elasticnet_models/cv_folds/w1w3/random/gs_basic_folds_random.tsv", row.names = 2) # Terminal
-# weights <- read.delim("/Cluster_Filespace/Marioni_Group/Elena/epigenetic_clocks/biological_age/elasticnet_models/elnet_train/w1w3w4/random_cpgpredictor_cpgsubset100/elnet_coefficients_random_cpgpredictor_cpgsubset100.tsv", row.names = 1) # Terminal
 
 # Import + prep testing data
 ######################################################
@@ -74,7 +70,6 @@ if (cpg_bage == "F") {
 if ((cpg_bage == "T")) {
   testing <- readRDS(cpg_file)
   death <- readRDS(opt$input)
-  #death <- death[,c("tte", "dead")]
   samples <- Reduce(intersect, list(rownames(testing), rownames(death))) # 1331/1342
   testing <- testing[samples,]
   death <- death[samples,]
@@ -82,11 +77,9 @@ if ((cpg_bage == "T")) {
   testing <- cbind(death, testing)
 }
 
-# testing <- readRDS("/Cluster_Filespace/Marioni_Group/Elena/data/lbc_data/bage_variables.rds")
-# testing_info <- read.delim("/Cluster_Filespace/Marioni_Group/Elena/data/lbc_data/lbc_testing_info.tsv", row.names = 20)
-
 # Remove people that have missing or strange time-to-event values (negative)
 testing <- testing[!is.na(testing$tte) & testing$tte>0, ]
+testing_info <- testing_info[rownames(testing), ]
 
 # Filter test data
 x_test <- testing[,rownames(weights)]
@@ -101,24 +94,42 @@ print(dim(x_test))
 pred <- x_test * weights[,"Coefficient"]
 pred_pp <- colSums(pred)
 
-# Scale to same scale as age in training
-scale_pred <- function(x, mean_pred, sd_pred, mean_train, sd_train) { 
-  scaled <- mean_train + (x - mean_pred)*(sd_train/sd_pred)
+# Scale to Z scale
+scale_pred <- function(x, mean_pred, sd_pred, mean_test, sd_test) { 
+  scaled <- mean_test + (x - mean_pred)*(sd_test/sd_pred)
   return(scaled)
 }
 
-mean_pred <- mean(pred_pp)
-mean_train <- mean(training_info$age)
-sd_pred <- sd(pred_pp)
-sd_train <- sd(training_info$age)
-pred_pp_scaled <- scale_pred(pred_pp, mean_pred, sd_pred, mean_train, sd_train)
+# Scale to same scale as age in testing
+scale_Z <- function(x, mean_pred, sd_pred) { 
+  scaled <- (x - mean_pred)/sd_pred
+  return(scaled)
+}
+
+pred_pp_scaled <- c()
+pred_pp_Z <- c()
+for (cohort in unique(testing_info$cohort)) {
+  testing_info_cohort <- testing_info[testing_info$cohort == cohort,]
+  pred_pp_cohort <- pred_pp[rownames(testing_info_cohort)]
+  mean_pred <- mean(pred_pp_cohort)
+  mean_test <- mean(testing_info_cohort$age)
+  sd_pred <- sd(pred_pp_cohort)
+  sd_test <- sd(testing_info_cohort$age)
+  pred_pp_scaled_cohort <- scale_pred(pred_pp_cohort, mean_pred, sd_pred, mean_test, sd_test)
+  pred_pp_Z_cohort <- scale_Z(pred_pp_cohort, mean_pred, sd_pred)
+  pred_pp_scaled <- c(pred_pp_scaled, pred_pp_scaled_cohort)
+  pred_pp_Z <- c(pred_pp_Z, pred_pp_Z_cohort)
+}
+
+pred_pp_Z <- pred_pp_Z[names(pred_pp)]
+pred_pp_scaled <- pred_pp_scaled[names(pred_pp)]
 
 
 # Fuse everything into df
 ######################################################
 
-pred_df <- data.frame(pred_pp_scaled, testing_info[colnames(x_test),"DNAmGrimAge",drop=FALSE], testing_info[colnames(x_test),"age",drop=FALSE], testing_info[colnames(x_test),"sex",drop=FALSE], testing[colnames(x_test),"tte",drop=FALSE], testing[colnames(x_test),"dead",drop=FALSE], testing_info[colnames(x_test),"cohort"])
-names(pred_df) <- c("bAge", "GrimAge", "Age", "Sex", "TTE", "Dead", "Cohort")
+pred_df <- data.frame(pred_pp_Z, pred_pp_scaled, testing_info[colnames(x_test),"DNAmGrimAge",drop=FALSE], testing_info[colnames(x_test),"age",drop=FALSE], testing_info[colnames(x_test),"sex",drop=FALSE], testing[colnames(x_test),"tte",drop=FALSE], testing[colnames(x_test),"dead",drop=FALSE], testing_info[colnames(x_test),"cohort"])
+names(pred_df) <- c("bAge_Z", "bAge", "GrimAge", "Age", "Sex", "TTE", "Dead", "Cohort")
 cat("Have prepped testing data.\n")
 
 
@@ -223,3 +234,4 @@ cox <- rbind(bage_stuff, grim_stuff)
 # Export!
 write.table(data.frame("Variable" = rownames(cox), cox), file = paste0(output_dir, "coxph_testing.tsv"), quote = FALSE, sep = "\t", row.names = FALSE)
 
+bAge

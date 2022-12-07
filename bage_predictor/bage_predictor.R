@@ -238,25 +238,33 @@ pred_pp <- colSums(pred)
 
 ## Scale to same scale as age in training
 message("5.2. Scaling bAge") 
-scale_pred <- function(x, mean_pred, sd_pred, mean_train, sd_train) { 
-  scaled <- mean_train + (x - mean_pred)*(sd_train/sd_pred)
+scale_pred <- function(x, mean_pred, sd_pred, mean_test, sd_test) { 
+  scaled <- mean_test + (x - mean_pred)*(sd_test/sd_pred)
+  return(scaled)
+}
+
+# Scale to same scale as age in testing
+scale_Z <- function(x, mean_pred, sd_pred) { 
+  scaled <- (x - mean_pred)/sd_pred
   return(scaled)
 }
 
 mean_pred <- mean(pred_pp)
-mean_train <- 47.5 # Mean age in training data
+mean_test <- mean(pheno$Age) # Mean age in testing data
 sd_pred <- sd(pred_pp)
-sd_train <- 14.9 # SD age in training data
-pred_pp_scaled <- scale_pred(pred_pp, mean_pred, sd_pred, mean_train, sd_train)
+sd_test <- sd(pheno$Age) # SD age in testing data
+
+pred_pp_Z <- scale_Z(pred_pp, mean_pred, sd_pred)
+pred_pp_scaled <- scale_pred(pred_pp, mean_pred, sd_pred, mean_test, sd_test)
 
 ## Make df with everything
-pred_df <- data.frame(pred_pp_scaled, grim_pred, pheno[samples, c("Age", "Sex", "TTE", "Dead")])
-names(pred_df) <- c("bAge", "GrimAge", "Age", "Sex", "TTE", "Dead")
+pred_df <- data.frame(pred_pp_Z, pred_pp_scaled, grim_pred, pheno[samples, c("Age", "Sex", "TTE", "Dead")])
+names(pred_df) <- c("bAge_Z", "bAge_Years", "GrimAge", "Age", "Sex", "TTE", "Dead")
 
 ## Obtain bAgeAccel and GrimAgeAccel
 message("5.3. Obtaining bAgeAccel") 
 pred_df$GrimAgeAccel <- resid(lm(GrimAge ~ Age, data=pred_df, na.action=na.exclude))
-pred_df$bAgeAccel <- resid(lm(bAge ~ Age, data=pred_df, na.action=na.exclude))
+pred_df$bAgeAccel <- resid(lm(bAge_Years ~ Age, data=pred_df, na.action=na.exclude))
 
 ## Export
 message("5.4. Exporting predictions") 
