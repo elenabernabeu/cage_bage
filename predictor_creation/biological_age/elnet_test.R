@@ -233,5 +233,3 @@ cox <- rbind(bage_stuff, grim_stuff)
 
 # Export!
 write.table(data.frame("Variable" = rownames(cox), cox), file = paste0(output_dir, "coxph_testing.tsv"), quote = FALSE, sep = "\t", row.names = FALSE)
-
-bAge

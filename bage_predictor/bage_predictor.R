@@ -236,14 +236,14 @@ scores <- t(scores)
 pred <- scores * coefficients[,"Coefficient"]
 pred_pp <- colSums(pred)
 
-## Scale to same scale as age in training
+## Scale to same scale as age in testing
 message("5.2. Scaling bAge") 
 scale_pred <- function(x, mean_pred, sd_pred, mean_test, sd_test) { 
   scaled <- mean_test + (x - mean_pred)*(sd_test/sd_pred)
   return(scaled)
 }
 
-# Scale to same scale as age in testing
+# Scale to same Z scale
 scale_Z <- function(x, mean_pred, sd_pred) { 
   scaled <- (x - mean_pred)/sd_pred
   return(scaled)
@@ -258,13 +258,14 @@ pred_pp_Z <- scale_Z(pred_pp, mean_pred, sd_pred)
 pred_pp_scaled <- scale_pred(pred_pp, mean_pred, sd_pred, mean_test, sd_test)
 
 ## Make df with everything
-pred_df <- data.frame(pred_pp_Z, pred_pp_scaled, grim_pred, pheno[samples, c("Age", "Sex", "TTE", "Dead")])
-names(pred_df) <- c("bAge_Z", "bAge_Years", "GrimAge", "Age", "Sex", "TTE", "Dead")
+# pred_df <- data.frame(pred_pp_Z, pred_pp_scaled, grim_pred, pheno[samples, c("Age", "Sex", "TTE", "Dead")])
+pred_df <- data.frame(pred_pp_Z, grim_pred, pheno[samples, c("Age", "Sex", "TTE", "Dead")])
+names(pred_df) <- c("bAge", "bAge_Years", "GrimAge", "Age", "Sex", "TTE", "Dead")
 
 ## Obtain bAgeAccel and GrimAgeAccel
 message("5.3. Obtaining bAgeAccel") 
 pred_df$GrimAgeAccel <- resid(lm(GrimAge ~ Age, data=pred_df, na.action=na.exclude))
-pred_df$bAgeAccel <- resid(lm(bAge_Years ~ Age, data=pred_df, na.action=na.exclude))
+pred_df$bAgeAccel <- resid(lm(bAge ~ Age, data=pred_df, na.action=na.exclude))
 
 ## Export
 message("5.4. Exporting predictions") 
