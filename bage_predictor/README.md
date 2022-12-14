@@ -1,7 +1,5 @@
 # bAge predictor
 
-**Note: At the moment this script is made with comparison to GrimAge in mind, not as a standalone bAge predictor. This functionality will be added soon.**
-
 ## Requirements
 To test bAge you need:
 1. Methylation data (in the form of M-values or beta-values), preferably rows being CpGs and columns being samples.
@@ -23,4 +21,4 @@ Once that's done you can run the script and that will output predictions as well
 Files that will be outputted by script:
 - `projections_episcores.tsv`: Episcore projections for samples included in phenotype file/for which methylation data was provided. 
 - `bage_predictions.tsv`: bAge predictions, in Z scale (bAge), and as age acceleration residuals (bAgeAccel).
-- `coxph_testing.tsv`: Cox-PH model results assessing predictive ability of bAge. 
+- `coxph_testing.tsv`: Cox-PH model results assessing predictive ability of bAge, compared to GrimAge. 
