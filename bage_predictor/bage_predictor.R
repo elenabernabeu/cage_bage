@@ -96,6 +96,8 @@ pheno <- pheno[!is.na(pheno[tteColname]) & pheno[tteColname]>0,]
 message("2.3 Subsetting samples to those in phenotype table") 
 data <- data[,which(colnames(data) %in% rownames(pheno))]
 grim <- grim[which(rownames(grim) %in% rownames(pheno)),]
+data <- data[,rownames(pheno)]
+grim <- grim[rownames(pheno),]
 
 ## Subset CpG sites to those present on list for predictors 
 message("2.4 Subsetting CpG sites to those required for predictor calculation") 
